@@ -71,6 +71,10 @@ jobs:
         run: |
           xrobot_add_mod qdu-future/${{ env.XR_MODULE_NAME }}
 
+      - name: Add qdu-future source
+        run: |
+          xrobot_src_man add-source https://qdu-robomaster.github.io/qdu-future-modules/index.yaml
+
       - name: Run xrobot_setup
         run: |
           xrobot_setup
