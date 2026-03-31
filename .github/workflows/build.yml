@@ -98,7 +98,7 @@ jobs:
         run: |
           xrobot_gen_main --output User/xrobot_main.hpp
 
-      - name: Install OpenVINO runtime
+      - name: Use bundled OpenVINO runtime
         run: echo "OpenVINO runtime is provided by ghcr.io/xrobot-org/docker-image-webots:main"
 
       - name: Build
