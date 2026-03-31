@@ -7,7 +7,7 @@ constructor_args: []
 template_args: []
 required_hardware: []
 depends:
-  - qdu-future/ArmorTracker
+  - qdu-future/ArmorTracker@feat/sp_vision
 === END MANIFEST === */
 // clang-format on
 
