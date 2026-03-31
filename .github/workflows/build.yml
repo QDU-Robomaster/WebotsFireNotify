@@ -67,21 +67,20 @@ jobs:
         run: |
           pip3 install xrobot libxr
 
+      - name: Add current repo to module list
+        run: |
+          xrobot_add_mod qdu-future/${{ env.XR_MODULE_NAME }}
+
       - name: Run xrobot_setup
         run: |
-          xrobot_setup || true
-
-      - name: Run xrobot_init_mod
-        run: |
-          xrobot_init_mod
+          xrobot_setup
 
       - name: Add BlinkLED module
         run: |
           xrobot_add_mod BlinkLED --instance-id BlinkLED_0
 
-      - name: Add this repo module
+      - name: Add this repo module instance
         run: |
-          xrobot_add_mod qdu-future/ArmorTracker
           xrobot_add_mod ${{ env.XR_MODULE_NAME }} && cat User/xrobot.yaml
 
       - name: Generate main again
