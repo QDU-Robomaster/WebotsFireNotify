@@ -102,6 +102,7 @@ jobs:
         run: |
           wget -O /tmp/openvino.tgz https://storage.openvinotoolkit.org/repositories/openvino/packages/2025.4/linux/openvino_toolkit_ubuntu24_2025.4.0.20398.8fdad55727d_x86_64.tgz
           tar -xf /tmp/openvino.tgz -C /tmp
+          mkdir -p /opt/intel
           mv /tmp/openvino_toolkit_ubuntu24_2025.4.0.20398.8fdad55727d_x86_64 /opt/intel/openvino_2025.4.0
 
       - name: Build
