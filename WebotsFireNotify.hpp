@@ -14,6 +14,7 @@ depends: []
 #include <webots/LED.hpp>
 #include <webots/Robot.hpp>
 
+#include "TrackerTypes.hpp"
 #include "app_framework.hpp"
 #include "libxr.hpp"
 
@@ -29,8 +30,8 @@ class WebotsFireNotify : public LibXR::Application
     auto cb = LibXR::Topic::Callback::Create(
         [](bool, WebotsFireNotify *self, LibXR::RawData &data)
         {
-          uint8_t *msg = static_cast<uint8_t *>(data.addr_);
-          self->led_->set(*msg > 0 ? 255 : 0);
+          auto *msg = static_cast<TrackerSend *>(data.addr_);
+          self->led_->set(msg->is_fire ? 255 : 0);
         },
         this);
 
@@ -44,5 +45,6 @@ class WebotsFireNotify : public LibXR::Application
  private:
   webots::LED *led_;
 
-  LibXR::Topic fire_notify_topic_ = LibXR::Topic("fire_notify", sizeof(uint8_t));
+  LibXR::Topic fire_notify_topic_ =
+      LibXR::Topic("send", sizeof(TrackerSend));
 };
