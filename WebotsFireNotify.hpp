@@ -6,7 +6,8 @@ module_description: No description provided
 constructor_args: []
 template_args: []
 required_hardware: []
-depends: []
+depends:
+  - qdu-future/ArmorTracker
 === END MANIFEST === */
 // clang-format on
 
