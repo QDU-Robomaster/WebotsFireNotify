@@ -449,12 +449,13 @@ class WebotsFireNotify : public LibXR::Application
   LibXR::Mutex state_mutex_;
   LibXR::Topic::Domain host_domain_ = LibXR::Topic::Domain("host");
   LibXR::Topic fire_notify_topic_ =
-      LibXR::Topic("fire_notify", sizeof(WebotsHostFireNotify), &host_domain_);
+      LibXR::Topic::CreateTopic<WebotsHostFireNotify>("fire_notify",
+                                                      &host_domain_);
   LibXR::Topic::Domain launcher_domain_ = LibXR::Topic::Domain("webots_launcher");
   LibXR::Topic state_topic_ =
-      LibXR::Topic("state", sizeof(WebotsRefereeTypes::WebotsLauncherState),
-                   &launcher_domain_, true);
+      LibXR::Topic::CreateTopic<WebotsRefereeTypes::WebotsLauncherState>(
+          "state", &launcher_domain_, true);
   LibXR::Topic shot_event_topic_ =
-      LibXR::Topic("shot_event", sizeof(WebotsRefereeTypes::WebotsLauncherShotEvent),
-                   &launcher_domain_, true);
+      LibXR::Topic::CreateTopic<WebotsRefereeTypes::WebotsLauncherShotEvent>(
+          "shot_event", &launcher_domain_, true);
 };
