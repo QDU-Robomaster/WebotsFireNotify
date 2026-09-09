@@ -90,9 +90,9 @@ class WebotsFireNotify : public LibXR::Application
     last_update_time_us_ = now;
 
     auto cb = LibXR::Topic::Callback::Create(
-        [](bool, WebotsFireNotify *self, LibXR::RawData &data)
+        [](bool, WebotsFireNotify *self, const LibXR::ConstRawData &data)
         {
-          auto *msg = reinterpret_cast<WebotsHostFireNotify *>(data.addr_);
+          auto *msg = reinterpret_cast<const WebotsHostFireNotify *>(data.addr_);
           if (msg != nullptr && data.size_ == sizeof(WebotsHostFireNotify))
           {
             self->HandleFireRequest(msg->isfire);

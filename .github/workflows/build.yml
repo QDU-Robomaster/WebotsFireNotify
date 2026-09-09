@@ -77,20 +77,32 @@ jobs:
         run: |
           xrobot_setup || true
           xrobot_src_man add-source https://qdu-robomaster.github.io/qdu-future-modules/index.yaml
-          xrobot_add_mod qdu-future/${{ env.XR_MODULE_NAME }}
           cat Modules/sources.yaml
           cat Modules/modules.yaml
 
+      - name: Add current manifest dependencies to module config
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import yaml
+          from xrobot.ModuleParser import load_single_module
+
+          manifest = load_single_module(Path("Modules") / os.environ["XR_MODULE_NAME"])
+          if manifest is None:
+              raise SystemExit("current module manifest was not found")
+          path = Path("Modules/modules.yaml")
+          config = yaml.safe_load(path.read_text()) or {}
+          modules = config.setdefault("modules", [])
+          for dependency in manifest.depends:
+              if dependency not in modules:
+                  modules.append(dependency)
+          path.write_text(yaml.safe_dump(config, sort_keys=False))
+          print("current manifest dependencies:", manifest.depends)
+          PY
+
       - name: Sync module repos from MANIFEST dependencies
         run: xrobot_init_mod
-
-      - name: Restore current module checkout
-        run: rm -rf Modules/${{ env.XR_MODULE_NAME }}
-
-      - name: Checkout current module repo again
-        uses: actions/checkout@v4
-        with:
-          path: Modules/${{ env.XR_MODULE_NAME }}
 
       - name: Create module config from MANIFEST defaults
         run: |
