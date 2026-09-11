@@ -26,6 +26,7 @@ depends:
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <stdexcept>
 
 #include <webots/LED.hpp>
 #include <webots/Robot.hpp>
@@ -33,6 +34,7 @@ depends:
 #include "WebotsRefereeTypes.hpp"
 #include "app_framework.hpp"
 #include "libxr.hpp"
+#include "logger.hpp"
 #include "timebase.hpp"
 #include "timer.hpp"
 
@@ -130,6 +132,16 @@ class WebotsFireNotify : public LibXR::Application
   /**
    * @brief 处理一次开火请求。
    */
+  static LibXR::Topic FindRequiredTopic(const char *name, LibXR::Topic::Domain *domain)
+  {
+    auto handle = LibXR::Topic::Find(name, domain);
+    if (handle == nullptr)
+    {
+      XR_LOG_ERROR("WebotsFireNotify required topic not found: %s", name);
+      throw std::runtime_error("WebotsFireNotify required topic not found");
+    }
+    return LibXR::Topic(handle);
+  }
   void HandleFireRequest(bool request)
   {
     const uint64_t now = NowUs();
@@ -449,8 +461,7 @@ class WebotsFireNotify : public LibXR::Application
   LibXR::Mutex state_mutex_;
   LibXR::Topic::Domain host_domain_ = LibXR::Topic::Domain("host");
   LibXR::Topic fire_notify_topic_ =
-      LibXR::Topic::CreateTopic<WebotsHostFireNotify>("fire_notify",
-                                                      &host_domain_);
+      FindRequiredTopic("fire_notify", &host_domain_);
   LibXR::Topic::Domain launcher_domain_ = LibXR::Topic::Domain("webots_launcher");
   LibXR::Topic state_topic_ =
       LibXR::Topic::CreateTopic<WebotsRefereeTypes::WebotsLauncherState>(
