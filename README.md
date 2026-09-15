@@ -1,5 +1,16 @@
 # WebotsFireNotify
 
+## Static assembly source line
+
+This source line uses explicit C++ constructor dependencies and ordered instance
+arguments. Inspect the current primary header with `xrobot_mod_parser --path .`;
+its declarations, not old manifest/config examples, define the interface.
+Historical HardwareContainer/ApplicationManager examples below apply only to the
+older dynamic source tags. Device/protocol descriptions remain relevant.
+See the XRobot [migration guide](https://github.com/xrobot-org/XRobot/blob/dev/MIGRATION.md).
+Compilation is not hardware validation; retain version-specific board evidence.
+
+
 `WebotsFireNotify` 是 Webots 中的发射机构仿真模块。它订阅
 `host/fire_notify`，把消息视为开火请求，并在射频、发弹延迟和热量限制通过后发布真实出弹事件。
 

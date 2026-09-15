@@ -7,19 +7,11 @@
 
 // clang-format off
 /* === MODULE MANIFEST V2 ===
-module_description: Webots launcher simulator with fire-rate, fire-delay and heat limits
-constructor_args:
-  - bullet_speed: 23.0
-  - single_shot_heat: 10.0
-  - shooter_heat_limit: 240.0
-  - shooter_cooling_value: 40.0
-  - max_fire_frequency_hz: 20.0
-  - fire_delay_ms: 30.0
-  - state_publish_period_ms: 10
-template_args: []
-required_hardware: []
+module_description: Webots launcher simulator with fire-rate, fire-delay and heat
+  limits
 depends:
-  - qdu-future/WebotsReferee
+- id: QDU-Robomaster/WebotsReferee
+  ref: same-or-dev
 === END MANIFEST === */
 // clang-format on
 
@@ -27,18 +19,16 @@ depends:
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
-
 #include <webots/LED.hpp>
 #include <webots/Robot.hpp>
 
 #include "WebotsRefereeTypes.hpp"
-#include "app_framework.hpp"
 #include "libxr.hpp"
 #include "logger.hpp"
 #include "timebase.hpp"
 #include "timer.hpp"
 
-extern webots::Robot *_libxr_webots_robot_handle;
+extern webots::Robot* _libxr_webots_robot_handle;
 
 /**
  * @brief DevC LauncherCMD 接收的发射请求载荷。
@@ -57,7 +47,7 @@ static_assert(sizeof(WebotsHostFireNotify) == 1);
  * 热量和延迟检查后，才发布 `webots_launcher/shot_event`，并用
  * `webots_launcher/state` 给 WebotsReferee 同步当前热量与射频。
  */
-class WebotsFireNotify : public LibXR::Application
+class WebotsFireNotify
 {
  public:
   /**
@@ -71,12 +61,9 @@ class WebotsFireNotify : public LibXR::Application
    * @param fire_delay_ms 请求到真实出弹的延迟，单位 ms。
    * @param state_publish_period_ms 状态发布周期，单位 ms。
    */
-  WebotsFireNotify(LibXR::HardwareContainer &, LibXR::ApplicationManager &app,
-                   float bullet_speed = 23.0f, float single_shot_heat = 10.0f,
-                   float shooter_heat_limit = 240.0f,
-                   float shooter_cooling_value = 40.0f,
-                   float max_fire_frequency_hz = 20.0f,
-                   float fire_delay_ms = 30.0f,
+  WebotsFireNotify(float bullet_speed = 23.0f, float single_shot_heat = 10.0f,
+                   float shooter_heat_limit = 240.0f, float shooter_cooling_value = 40.0f,
+                   float max_fire_frequency_hz = 20.0f, float fire_delay_ms = 30.0f,
                    int state_publish_period_ms = 10)
       : bullet_speed_(NonNegativeOrZero(bullet_speed)),
         single_shot_heat_(NonNegativeOrZero(single_shot_heat)),
@@ -92,9 +79,9 @@ class WebotsFireNotify : public LibXR::Application
     last_update_time_us_ = now;
 
     auto cb = LibXR::Topic::Callback::Create(
-        [](bool, WebotsFireNotify *self, const LibXR::ConstRawData &data)
+        [](bool, WebotsFireNotify* self, const LibXR::ConstRawData& data)
         {
-          auto *msg = reinterpret_cast<const WebotsHostFireNotify *>(data.addr_);
+          auto* msg = reinterpret_cast<const WebotsHostFireNotify*>(data.addr_);
           if (msg != nullptr && data.size_ == sizeof(WebotsHostFireNotify))
           {
             self->HandleFireRequest(msg->isfire);
@@ -104,9 +91,8 @@ class WebotsFireNotify : public LibXR::Application
 
     fire_notify_topic_.RegisterCallback(cb);
 
-    auto timer_handle = LibXR::Timer::CreateTask<WebotsFireNotify *>(
-        [](WebotsFireNotify *self)
-        { self->Tick(); }, this,
+    auto timer_handle = LibXR::Timer::CreateTask<WebotsFireNotify*>(
+        [](WebotsFireNotify* self) { self->Tick(); }, this,
         static_cast<uint32_t>(std::max(1, state_publish_period_ms)));
 
     LibXR::Timer::Add(timer_handle);
@@ -119,20 +105,18 @@ class WebotsFireNotify : public LibXR::Application
       UpdateLedLocked(now);
     }
     state_topic_.Publish(initial_state);
-
-    app.Register(*this);
   }
 
   /**
    * @brief 周期监控入口；发射机构由 topic 回调和 Timer 驱动。
    */
-  void OnMonitor() override {}
+  void OnMonitor() {}
 
  private:
   /**
    * @brief 处理一次开火请求。
    */
-  static LibXR::Topic FindRequiredTopic(const char *name, LibXR::Topic::Domain *domain)
+  static LibXR::Topic FindRequiredTopic(const char* name, LibXR::Topic::Domain* domain)
   {
     auto handle = LibXR::Topic::Find(name, domain);
     if (handle == nullptr)
@@ -178,8 +162,7 @@ class WebotsFireNotify : public LibXR::Application
         request_time_us_ = now;
         pending_fire_time_us_ = now + fire_delay_us_;
         next_fire_request_us_ = now + min_fire_interval_us_;
-        last_reject_reason_ =
-            WebotsRefereeTypes::WebotsLauncherRejectReason::NONE;
+        last_reject_reason_ = WebotsRefereeTypes::WebotsLauncherRejectReason::NONE;
 
         has_shot_event = ProcessPendingFireLocked(now, shot_event);
         state = BuildStateLocked(now);
@@ -242,8 +225,8 @@ class WebotsFireNotify : public LibXR::Application
   /**
    * @brief 到达发弹时刻后构造真实发弹事件。
    */
-  bool ProcessPendingFireLocked(
-      uint64_t now, WebotsRefereeTypes::WebotsLauncherShotEvent &event)
+  bool ProcessPendingFireLocked(uint64_t now,
+                                WebotsRefereeTypes::WebotsLauncherShotEvent& event)
   {
     if (!pending_fire_ || now < pending_fire_time_us_)
     {
@@ -283,8 +266,7 @@ class WebotsFireNotify : public LibXR::Application
     event.heat_limit = heat_limit_;
     event.cooling_rate = cooling_rate_;
     event.single_shot_heat = single_shot_heat_;
-    event.fire_delay_s =
-        static_cast<float>(fire_delay_us_) / MICROSECONDS_PER_SECOND_F;
+    event.fire_delay_s = static_cast<float>(fire_delay_us_) / MICROSECONDS_PER_SECOND_F;
     event.min_fire_interval_s =
         static_cast<float>(min_fire_interval_us_) / MICROSECONDS_PER_SECOND_F;
 
@@ -342,17 +324,15 @@ class WebotsFireNotify : public LibXR::Application
     state.single_shot_heat = single_shot_heat_;
     state.bullet_speed = bullet_speed_;
     state.max_fire_frequency_hz = max_fire_frequency_hz_;
-    state.fire_delay_s =
-        static_cast<float>(fire_delay_us_) / MICROSECONDS_PER_SECOND_F;
+    state.fire_delay_s = static_cast<float>(fire_delay_us_) / MICROSECONDS_PER_SECOND_F;
     state.min_fire_interval_s =
         static_cast<float>(min_fire_interval_us_) / MICROSECONDS_PER_SECOND_F;
     state.current_fire_frequency_hz = current_fire_frequency_hz_;
     state.launcher_enabled = launcher_enabled_ ? 1U : 0U;
-    state.can_fire =
-        CheckRejectReasonLocked(now) ==
-                WebotsRefereeTypes::WebotsLauncherRejectReason::NONE
-            ? 1U
-            : 0U;
+    state.can_fire = CheckRejectReasonLocked(now) ==
+                             WebotsRefereeTypes::WebotsLauncherRejectReason::NONE
+                         ? 1U
+                         : 0U;
     state.pending_fire = pending_fire_ ? 1U : 0U;
     state.last_reject_reason = static_cast<uint8_t>(last_reject_reason_);
 
@@ -364,8 +344,7 @@ class WebotsFireNotify : public LibXR::Application
    */
   void UpdateReportedFrequencyLocked(uint64_t now)
   {
-    if (last_fire_time_us_ == 0U ||
-        now - last_fire_time_us_ > FREQUENCY_REPORT_HOLD_US)
+    if (last_fire_time_us_ == 0U || now - last_fire_time_us_ > FREQUENCY_REPORT_HOLD_US)
     {
       current_fire_frequency_hz_ = 0.0f;
     }
@@ -421,8 +400,8 @@ class WebotsFireNotify : public LibXR::Application
       return 0;
     }
 
-    const auto interval_us = static_cast<uint64_t>(
-        std::lround(MICROSECONDS_PER_SECOND_D / frequency_hz));
+    const auto interval_us =
+        static_cast<uint64_t>(std::lround(MICROSECONDS_PER_SECOND_D / frequency_hz));
     return std::max<uint64_t>(1, interval_us);
   }
 
@@ -432,7 +411,7 @@ class WebotsFireNotify : public LibXR::Application
   static constexpr uint64_t SHOT_LED_HOLD_US = 80000;
   static constexpr uint64_t FREQUENCY_REPORT_HOLD_US = 1000000;
 
-  webots::LED *led_{nullptr};
+  webots::LED* led_{nullptr};
 
   const float bullet_speed_{0.0f};
   const float single_shot_heat_{0.0f};
@@ -460,8 +439,7 @@ class WebotsFireNotify : public LibXR::Application
 
   LibXR::Mutex state_mutex_;
   LibXR::Topic::Domain host_domain_ = LibXR::Topic::Domain("host");
-  LibXR::Topic fire_notify_topic_ =
-      FindRequiredTopic("fire_notify", &host_domain_);
+  LibXR::Topic fire_notify_topic_ = FindRequiredTopic("fire_notify", &host_domain_);
   LibXR::Topic::Domain launcher_domain_ = LibXR::Topic::Domain("webots_launcher");
   LibXR::Topic state_topic_ =
       LibXR::Topic::CreateTopic<WebotsRefereeTypes::WebotsLauncherState>(
