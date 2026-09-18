@@ -50,27 +50,30 @@ static_assert(sizeof(WebotsHostFireNotify) == 1);
 class WebotsFireNotify
 {
  public:
+  struct Param
+  {
+    float bullet_speed;  ///< 弹丸初速度，单位 m/s。
+    float single_shot_heat;  ///< 单发增加热量。
+    float shooter_heat_limit;  ///< 热量上限；小于等于 0 时不启用热量拒绝。
+    float shooter_cooling_value;  ///< 每秒热量恢复值。
+    float max_fire_frequency_hz;  ///< 最高射频；小于等于 0 时不启用射频拒绝。
+    float fire_delay_ms;  ///< 请求到真实出弹的延迟，单位 ms。
+    int state_publish_period_ms;  ///< 状态发布周期，单位 ms。
+  };
+
   /**
    * @brief 构造 Webots 发射机构仿真。
    *
-   * @param bullet_speed 弹丸初速度，单位 m/s。
-   * @param single_shot_heat 单发增加热量。
-   * @param shooter_heat_limit 热量上限；小于等于 0 时不启用热量拒绝。
-   * @param shooter_cooling_value 每秒热量恢复值。
-   * @param max_fire_frequency_hz 最高射频；小于等于 0 时不启用射频拒绝。
-   * @param fire_delay_ms 请求到真实出弹的延迟，单位 ms。
-   * @param state_publish_period_ms 状态发布周期，单位 ms。
+   * @param param Value configuration.
    */
-  WebotsFireNotify(float bullet_speed = 23.0f, float single_shot_heat = 10.0f,
-                   float shooter_heat_limit = 240.0f, float shooter_cooling_value = 40.0f,
-                   float max_fire_frequency_hz = 20.0f, float fire_delay_ms = 30.0f,
-                   int state_publish_period_ms = 10)
-      : bullet_speed_(NonNegativeOrZero(bullet_speed)),
-        single_shot_heat_(NonNegativeOrZero(single_shot_heat)),
-        heat_limit_(NonNegativeOrZero(shooter_heat_limit)),
-        cooling_rate_(NonNegativeOrZero(shooter_cooling_value)),
-        max_fire_frequency_hz_(NonNegativeOrZero(max_fire_frequency_hz)),
-        fire_delay_us_(MillisecondsToMicroseconds(fire_delay_ms)),
+  WebotsFireNotify(
+      const Param& param = {.bullet_speed = 23.0f, .single_shot_heat = 10.0f, .shooter_heat_limit = 240.0f, .shooter_cooling_value = 40.0f, .max_fire_frequency_hz = 20.0f, .fire_delay_ms = 30.0f, .state_publish_period_ms = 10})
+      : bullet_speed_(NonNegativeOrZero(param.bullet_speed)),
+        single_shot_heat_(NonNegativeOrZero(param.single_shot_heat)),
+        heat_limit_(NonNegativeOrZero(param.shooter_heat_limit)),
+        cooling_rate_(NonNegativeOrZero(param.shooter_cooling_value)),
+        max_fire_frequency_hz_(NonNegativeOrZero(param.max_fire_frequency_hz)),
+        fire_delay_us_(MillisecondsToMicroseconds(param.fire_delay_ms)),
         min_fire_interval_us_(FrequencyToIntervalMicroseconds(max_fire_frequency_hz_))
   {
     led_ = _libxr_webots_robot_handle->getLED("fire_led");
@@ -93,7 +96,7 @@ class WebotsFireNotify
 
     auto timer_handle = LibXR::Timer::CreateTask<WebotsFireNotify*>(
         [](WebotsFireNotify* self) { self->Tick(); }, this,
-        static_cast<uint32_t>(std::max(1, state_publish_period_ms)));
+        static_cast<uint32_t>(std::max(1, param.state_publish_period_ms)));
 
     LibXR::Timer::Add(timer_handle);
     LibXR::Timer::Start(timer_handle);
