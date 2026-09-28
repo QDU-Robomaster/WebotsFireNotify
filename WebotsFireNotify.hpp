@@ -110,11 +110,6 @@ class WebotsFireNotify
     state_topic_.Publish(initial_state);
   }
 
-  /**
-   * @brief 周期监控入口；发射机构由 topic 回调和 Timer 驱动。
-   */
-  void OnMonitor() {}
-
  private:
   /**
    * @brief 处理一次开火请求。
