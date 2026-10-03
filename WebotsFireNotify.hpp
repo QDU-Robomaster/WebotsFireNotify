@@ -26,39 +26,65 @@ extern webots::Robot* _libxr_webots_robot_handle;
 
 /**
  * @brief DevC LauncherCMD 接收的发射请求载荷。
+ *        Fire request payload received by the DevC LauncherCMD.
  */
 struct WebotsHostFireNotify
 {
-  bool isfire{false};  ///< 是否请求发射。
+  bool isfire{false};  ///< 是否请求发射
+  ///< Whether a shot is requested
 };
 
 static_assert(sizeof(WebotsHostFireNotify) == 1);
 
 /**
  * @brief Webots 发射机构。
+ *        Webots launcher.
  *
- * 本模块把 `host/fire_notify` 当作开火请求。请求通过射频、热量和延迟检查后，
- * 发布 `webots_launcher/shot_event`，并用 `webots_launcher/state` 给 WebotsReferee
- * 同步当前热量与射频。
+ * @details 把 `host/fire_notify` 当作开火请求。请求通过射频、热量和延迟检查后，发布
+ *          `webots_launcher/shot_event`，并用 `webots_launcher/state` 给 WebotsReferee
+ *          同步当前热量与射频。
+ *          Treats `host/fire_notify` as a fire request. After a request passes the
+ *          fire-rate, heat and delay checks, `webots_launcher/shot_event` is published,
+ *          and `webots_launcher/state` synchronizes the current heat and fire rate to
+ *          WebotsReferee.
  */
 class WebotsFireNotify
 {
  public:
+  /**
+   * @brief 构造参数。
+   *        Construction parameters.
+   */
   struct Param
   {
-    float bullet_speed;  ///< 弹丸初速度，单位 m/s。
-    float single_shot_heat;  ///< 单发增加热量。
-    float shooter_heat_limit;  ///< 热量上限；小于等于 0 时不启用热量拒绝。
-    float shooter_cooling_value;  ///< 每秒热量恢复值。
-    float max_fire_frequency_hz;  ///< 最高射频；小于等于 0 时不启用射频拒绝。
-    float fire_delay_ms;  ///< 请求到真实出弹的延迟，单位 ms。
-    int state_publish_period_ms;  ///< 状态发布周期，单位 ms。
+    float bullet_speed;  ///< 弹丸初速度，单位 m/s
+    ///< Projectile muzzle speed in m/s
+    float single_shot_heat;  ///< 单发增加的热量
+    ///< Heat added by one shot
+    float shooter_heat_limit;  ///< 热量上限，小于等于 0 时不启用热量拒绝
+    ///< Heat limit; the heat rejection is disabled when less than or equal to 0
+    float shooter_cooling_value;  ///< 每秒恢复的热量
+    ///< Heat recovered per second
+    float max_fire_frequency_hz;  ///< 最大射频，小于等于 0 时不启用射频拒绝
+    ///< Maximum fire rate; the rate rejection is disabled when less than or equal to 0
+    float fire_delay_ms;  ///< 请求到真实出弹的延迟，单位 ms
+    ///< Delay from the request to the actual shot in ms
+    int state_publish_period_ms;  ///< 状态发布周期，单位 ms，最小按 1 执行
+    ///< State publishing period in ms, at least 1 is used
   };
 
   /**
-   * @brief 构造 Webots 发射机构仿真。
+   * @brief 构造 Webots 发射机构仿真：订阅 `host/fire_notify`，创建 `webots_launcher`
+   *        域的状态与出弹 Topic，并启动周期定时任务。
+   *        Construct the Webots launcher simulation: subscribe to `host/fire_notify`,
+   *        create the state and shot Topics of the `webots_launcher` domain and start the
+   *        periodic timer task.
    *
-   * @param param Value configuration.
+   * @param param 构造参数。
+   *              Construction parameters.
+   *
+   * @note `host/fire_notify` 缺失时记录错误并抛出 `std::runtime_error`。
+   *       A missing `host/fire_notify` is logged and throws `std::runtime_error`.
    */
   WebotsFireNotify(
       const Param& param = {.bullet_speed = 23.0f, .single_shot_heat = 10.0f, .shooter_heat_limit = 240.0f, .shooter_cooling_value = 40.0f, .max_fire_frequency_hz = 20.0f, .fire_delay_ms = 30.0f, .state_publish_period_ms = 10})
@@ -106,7 +132,15 @@ class WebotsFireNotify
 
  private:
   /**
-   * @brief 处理一次开火请求。
+   * @brief 查找必需的 Topic，缺失时抛出异常。
+   *        Find a required Topic and throw when it is missing.
+   *
+   * @param name Topic 名称。
+   *             Topic name.
+   * @param domain Topic 所在的 domain。
+   *               Domain of the Topic.
+   * @return 找到的 Topic。
+   *         The Topic found.
    */
   static LibXR::Topic FindRequiredTopic(const char* name, LibXR::Topic::Domain* domain)
   {
@@ -118,6 +152,14 @@ class WebotsFireNotify
     }
     return LibXR::Topic(handle);
   }
+  /**
+   * @brief 处理一次开火请求：冷却热量，按拒绝规则判定，接受时登记待发弹并发布状态。
+   *        Handle one fire request: cool the heat, apply the reject rules and, when
+   *        accepted, register the pending shot and publish the state.
+   *
+   * @param request 是否请求开火；为 false 时只刷新 LED。
+   *                Whether a shot is requested; with false only the LED is refreshed.
+   */
   void HandleFireRequest(bool request)
   {
     const uint64_t now = NowUs();
@@ -175,6 +217,7 @@ class WebotsFireNotify
 
   /**
    * @brief 定时推进冷却、延迟出弹和状态发布。
+   *        Advance the cooling, the delayed shot and the state publishing periodically.
    */
   void Tick()
   {
@@ -199,7 +242,11 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 按经过时间恢复热量。
+   * @brief 按经过的时间恢复热量。
+   *        Recover the heat according to the elapsed time.
+   *
+   * @param now 当前时间，单位 us。
+   *            Current time in us.
    */
   void CoolHeatLocked(uint64_t now)
   {
@@ -215,7 +262,15 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 到达发弹时刻后构造真实发弹事件。
+   * @brief 到达发弹时刻后构造出弹事件并增加热量。
+   *        Build the shot event and add the heat once the fire time is reached.
+   *
+   * @param now 当前时间，单位 us。
+   *            Current time in us.
+   * @param event 输出的出弹事件。
+   *              Output shot event.
+   * @return 产生出弹事件时为 true。
+   *         True when a shot event was produced.
    */
   bool ProcessPendingFireLocked(uint64_t now,
                                 WebotsRefereeTypes::WebotsLauncherShotEvent& event)
@@ -266,7 +321,13 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 计算当前请求是否应被拒绝。
+   * @brief 判定当前请求应否被拒绝。
+   *        Decide whether the current request is to be rejected.
+   *
+   * @param now 当前时间，单位 us。
+   *            Current time in us.
+   * @return 拒绝原因，接受时为 `NONE`。
+   *         The reject reason, `NONE` when accepted.
    */
   WebotsRefereeTypes::WebotsLauncherRejectReason CheckRejectReasonLocked(
       uint64_t now) const
@@ -298,6 +359,12 @@ class WebotsFireNotify
 
   /**
    * @brief 构造发射机构状态。
+   *        Build the launcher state.
+   *
+   * @param now 当前时间，单位 us。
+   *            Current time in us.
+   * @return 发射机构状态。
+   *         The launcher state.
    */
   WebotsRefereeTypes::WebotsLauncherState BuildStateLocked(uint64_t now)
   {
@@ -332,7 +399,11 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 无近期发弹时把上报射频恢复为 0。
+   * @brief 超过 1 s 没有发弹时把上报射频恢复为 0。
+   *        Reset the reported fire rate to 0 when no shot was fired for more than 1 s.
+   *
+   * @param now 当前时间，单位 us。
+   *            Current time in us.
    */
   void UpdateReportedFrequencyLocked(uint64_t now)
   {
@@ -343,7 +414,11 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 更新 Webots LED，仅作请求和真实出弹的视觉提示。
+   * @brief 更新 Webots LED，作为请求和真实出弹的视觉提示。
+   *        Update the Webots LED as a visual hint for requests and actual shots.
+   *
+   * @param now 当前时间，单位 us。
+   *            Current time in us.
    */
   void UpdateLedLocked(uint64_t now)
   {
@@ -358,7 +433,11 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 获取当前 libxr 时间，单位 us。
+   * @brief 获取当前 LibXR 时间。
+   *        Get the current LibXR time.
+   *
+   * @return 当前时间，单位 us。
+   *         Current time in us.
    */
   static uint64_t NowUs()
   {
@@ -366,7 +445,13 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 非有限值和负数统一按 0 处理。
+   * @brief 非有限值和负数按 0 处理。
+   *        Treat non-finite values and negative numbers as 0.
+   *
+   * @param value 输入值。
+   *              Input value.
+   * @return 处理后的值。
+   *         The resulting value.
    */
   static float NonNegativeOrZero(float value)
   {
@@ -374,7 +459,13 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief ms 转 us。
+   * @brief 毫秒转微秒。
+   *        Convert milliseconds to microseconds.
+   *
+   * @param milliseconds 毫秒数。
+   *                     Milliseconds.
+   * @return 微秒数。
+   *         Microseconds.
    */
   static uint64_t MillisecondsToMicroseconds(float milliseconds)
   {
@@ -383,7 +474,13 @@ class WebotsFireNotify
   }
 
   /**
-   * @brief 射频上限转最小发射间隔。
+   * @brief 把射频上限换算为最小发射间隔。
+   *        Convert the fire-rate limit into the minimum fire interval.
+   *
+   * @param frequency_hz 射频上限，单位 Hz。
+   *                     Fire-rate limit in Hz.
+   * @return 最小发射间隔，单位 us；射频无效时为 0。
+   *         Minimum fire interval in us, 0 for an invalid rate.
    */
   static uint64_t FrequencyToIntervalMicroseconds(float frequency_hz)
   {
