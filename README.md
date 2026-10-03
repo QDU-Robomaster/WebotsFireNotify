@@ -91,7 +91,7 @@ An instance written by `xrobot instance add QDU-Robomaster/WebotsFireNotify`, wh
 ```yaml
 modules:
   - module: QDU-Robomaster/WebotsFireNotify
-    id: webotsfirenotify_0
+    id: WebotsFireNotify_0
     args:
       - param:
           bullet_speed: 23.0f
