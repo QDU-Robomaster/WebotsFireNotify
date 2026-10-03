@@ -1,14 +1,8 @@
 #pragma once
 
-/**
- * @file WebotsFireNotify.hpp
- * @brief Webots 发射机构仿真模块。
- */
-
 // clang-format off
 /* === MODULE MANIFEST V2 ===
-module_description: Webots launcher simulator with fire-rate, fire-delay and heat
-  limits
+module_description: Webots 发射机构仿真模块：按射频、发弹延迟与热量限制把开火请求转换为出弹事件 / Webots launcher simulation Module that turns fire requests into shot events under fire-rate, fire-delay and heat limits
 depends:
 - id: QDU-Robomaster/WebotsReferee
   ref: same-or-dev
@@ -43,9 +37,9 @@ static_assert(sizeof(WebotsHostFireNotify) == 1);
 /**
  * @brief Webots 发射机构。
  *
- * 本模块把 `host/fire_notify` 当作开火请求，而不是已发弹事实。请求通过射频、
- * 热量和延迟检查后，才发布 `webots_launcher/shot_event`，并用
- * `webots_launcher/state` 给 WebotsReferee 同步当前热量与射频。
+ * 本模块把 `host/fire_notify` 当作开火请求。请求通过射频、热量和延迟检查后，
+ * 发布 `webots_launcher/shot_event`，并用 `webots_launcher/state` 给 WebotsReferee
+ * 同步当前热量与射频。
  */
 class WebotsFireNotify
 {
