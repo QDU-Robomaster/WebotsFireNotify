@@ -86,8 +86,13 @@ class WebotsFireNotify
    * @note `host/fire_notify` 缺失时记录错误并抛出 `std::runtime_error`。
    *       A missing `host/fire_notify` is logged and throws `std::runtime_error`.
    */
-  WebotsFireNotify(
-      const Param& param = {.bullet_speed = 23.0f, .single_shot_heat = 10.0f, .shooter_heat_limit = 240.0f, .shooter_cooling_value = 40.0f, .max_fire_frequency_hz = 20.0f, .fire_delay_ms = 30.0f, .state_publish_period_ms = 10})
+  WebotsFireNotify(const Param& param = {.bullet_speed = 23.0f,
+                                         .single_shot_heat = 10.0f,
+                                         .shooter_heat_limit = 240.0f,
+                                         .shooter_cooling_value = 40.0f,
+                                         .max_fire_frequency_hz = 20.0f,
+                                         .fire_delay_ms = 30.0f,
+                                         .state_publish_period_ms = 10})
       : bullet_speed_(NonNegativeOrZero(param.bullet_speed)),
         single_shot_heat_(NonNegativeOrZero(param.single_shot_heat)),
         heat_limit_(NonNegativeOrZero(param.shooter_heat_limit)),
